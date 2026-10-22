@@ -1,0 +1,242 @@
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["multiSchema"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+  schemas  = ["usrmgnt"]
+}
+
+model actions {
+  id           String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  action_code  String         @db.VarChar(30)
+  action_name  String         @db.VarChar(100)
+  description  String?
+  is_default   Boolean        @default(false)
+  sort_order   Int            @default(0)
+  created_by   String         @db.VarChar(100)
+  created_at   DateTime       @default(now()) @db.Timestamptz(6)
+  updated_by   String?        @db.VarChar(100)
+  updated_at   DateTime?      @db.Timestamptz(6)
+  deleted_by   String?        @db.VarChar(100)
+  deleted_at   DateTime?      @db.Timestamptz(6)
+  is_deleted   Boolean        @default(false)
+  is_active    Boolean        @default(true)
+  menu_actions menu_actions[]
+
+  @@schema("usrmgnt")
+}
+
+model applications {
+  id                   String                 @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  app_code             String                 @db.VarChar(30)
+  app_name             String                 @db.VarChar(150)
+  description          String?
+  base_url             String?                @db.VarChar(500)
+  icon                 String?                @db.VarChar(100)
+  sort_order           Int                    @default(0)
+  created_by           String                 @db.VarChar(100)
+  created_at           DateTime               @default(now()) @db.Timestamptz(6)
+  updated_by           String?                @db.VarChar(100)
+  updated_at           DateTime?              @db.Timestamptz(6)
+  deleted_by           String?                @db.VarChar(100)
+  deleted_at           DateTime?              @db.Timestamptz(6)
+  is_deleted           Boolean                @default(false)
+  is_active            Boolean                @default(true)
+  company_applications company_applications[]
+  menus                menus[]
+  user_groups          user_groups[]
+
+  @@schema("usrmgnt")
+}
+
+model companies {
+  id                   String                 @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  company_code         String                 @db.VarChar(20)
+  company_name         String                 @db.VarChar(200)
+  short_name           String?                @db.VarChar(50)
+  tax_number           String?                @db.VarChar(30)
+  address              String?
+  phone                String?                @db.VarChar(30)
+  email                String?                @db.VarChar(150)
+  logo_url             String?                @db.VarChar(500)
+  created_by           String                 @db.VarChar(100)
+  created_at           DateTime               @default(now()) @db.Timestamptz(6)
+  updated_by           String?                @db.VarChar(100)
+  updated_at           DateTime?              @db.Timestamptz(6)
+  deleted_by           String?                @db.VarChar(100)
+  deleted_at           DateTime?              @db.Timestamptz(6)
+  is_deleted           Boolean                @default(false)
+  is_active            Boolean                @default(true)
+  company_applications company_applications[]
+  user_group_members   user_group_members[]
+
+  @@schema("usrmgnt")
+}
+
+model company_applications {
+  id             String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  company_id     String       @db.Uuid
+  application_id String       @db.Uuid
+  created_by     String       @db.VarChar(100)
+  created_at     DateTime     @default(now()) @db.Timestamptz(6)
+  updated_by     String?      @db.VarChar(100)
+  updated_at     DateTime?    @db.Timestamptz(6)
+  deleted_by     String?      @db.VarChar(100)
+  deleted_at     DateTime?    @db.Timestamptz(6)
+  is_deleted     Boolean      @default(false)
+  is_active      Boolean      @default(true)
+  applications   applications @relation(fields: [application_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  companies      companies    @relation(fields: [company_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([application_id], map: "ix_company_applications_application")
+  @@schema("usrmgnt")
+}
+
+model menu_actions {
+  id                     String                   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  menu_id                String                   @db.Uuid
+  action_id              String                   @db.Uuid
+  created_by             String                   @db.VarChar(100)
+  created_at             DateTime                 @default(now()) @db.Timestamptz(6)
+  updated_by             String?                  @db.VarChar(100)
+  updated_at             DateTime?                @db.Timestamptz(6)
+  deleted_by             String?                  @db.VarChar(100)
+  deleted_at             DateTime?                @db.Timestamptz(6)
+  is_deleted             Boolean                  @default(false)
+  is_active              Boolean                  @default(true)
+  actions                actions                  @relation(fields: [action_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  menus                  menus                    @relation(fields: [menu_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  user_group_permissions user_group_permissions[]
+
+  @@index([action_id], map: "ix_menu_actions_action")
+  @@schema("usrmgnt")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model menus {
+  id             String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  application_id String         @db.Uuid
+  parent_id      String?        @db.Uuid
+  menu_code      String         @db.VarChar(50)
+  menu_name      String         @db.VarChar(150)
+  menu_type      String         @default("PAGE") @db.VarChar(10)
+  route_path     String?        @db.VarChar(300)
+  icon           String?        @db.VarChar(100)
+  sort_order     Int            @default(0)
+  is_visible     Boolean        @default(true)
+  created_by     String         @db.VarChar(100)
+  created_at     DateTime       @default(now()) @db.Timestamptz(6)
+  updated_by     String?        @db.VarChar(100)
+  updated_at     DateTime?      @db.Timestamptz(6)
+  deleted_by     String?        @db.VarChar(100)
+  deleted_at     DateTime?      @db.Timestamptz(6)
+  is_deleted     Boolean        @default(false)
+  is_active      Boolean        @default(true)
+  menu_actions   menu_actions[]
+  applications   applications   @relation(fields: [application_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  menus          menus?         @relation("menusTomenus", fields: [parent_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  other_menus    menus[]        @relation("menusTomenus")
+
+  @@index([application_id], map: "ix_menus_application")
+  @@index([parent_id], map: "ix_menus_parent")
+  @@schema("usrmgnt")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model user_group_members {
+  id            String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id       String      @db.Uuid
+  user_group_id String      @db.Uuid
+  company_id    String      @db.Uuid
+  valid_from    DateTime    @default(dbgenerated("CURRENT_DATE")) @db.Date
+  valid_to      DateTime?   @db.Date
+  created_by    String      @db.VarChar(100)
+  created_at    DateTime    @default(now()) @db.Timestamptz(6)
+  updated_by    String?     @db.VarChar(100)
+  updated_at    DateTime?   @db.Timestamptz(6)
+  deleted_by    String?     @db.VarChar(100)
+  deleted_at    DateTime?   @db.Timestamptz(6)
+  is_deleted    Boolean     @default(false)
+  is_active     Boolean     @default(true)
+  companies     companies   @relation(fields: [company_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  user_groups   user_groups @relation(fields: [user_group_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  users         users       @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([company_id], map: "ix_user_group_members_company")
+  @@index([user_group_id], map: "ix_user_group_members_group")
+  @@schema("usrmgnt")
+}
+
+model user_group_permissions {
+  id             String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_group_id  String       @db.Uuid
+  menu_action_id String       @db.Uuid
+  created_by     String       @db.VarChar(100)
+  created_at     DateTime     @default(now()) @db.Timestamptz(6)
+  updated_by     String?      @db.VarChar(100)
+  updated_at     DateTime?    @db.Timestamptz(6)
+  deleted_by     String?      @db.VarChar(100)
+  deleted_at     DateTime?    @db.Timestamptz(6)
+  is_deleted     Boolean      @default(false)
+  is_active      Boolean      @default(true)
+  menu_actions   menu_actions @relation(fields: [menu_action_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  user_groups    user_groups  @relation(fields: [user_group_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([menu_action_id], map: "ix_user_group_permissions_menu_action")
+  @@schema("usrmgnt")
+}
+
+model user_groups {
+  id                     String                   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  application_id         String                   @db.Uuid
+  group_code             String                   @db.VarChar(50)
+  group_name             String                   @db.VarChar(150)
+  description            String?
+  created_by             String                   @db.VarChar(100)
+  created_at             DateTime                 @default(now()) @db.Timestamptz(6)
+  updated_by             String?                  @db.VarChar(100)
+  updated_at             DateTime?                @db.Timestamptz(6)
+  deleted_by             String?                  @db.VarChar(100)
+  deleted_at             DateTime?                @db.Timestamptz(6)
+  is_deleted             Boolean                  @default(false)
+  is_active              Boolean                  @default(true)
+  user_group_members     user_group_members[]
+  user_group_permissions user_group_permissions[]
+  applications           applications             @relation(fields: [application_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([application_id], map: "ix_user_groups_application")
+  @@schema("usrmgnt")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model users {
+  id                   String               @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  username             String               @db.VarChar(100)
+  email                String               @db.VarChar(150)
+  full_name            String               @db.VarChar(200)
+  employee_no          String?              @db.VarChar(30)
+  phone                String?              @db.VarChar(30)
+  auth_provider        String               @default("LOCAL") @db.VarChar(10)
+  password_hash        String?              @db.VarChar(255)
+  password_changed_at  DateTime?            @db.Timestamptz(6)
+  must_change_password Boolean              @default(false)
+  failed_login_count   Int                  @default(0) @db.SmallInt
+  is_locked            Boolean              @default(false)
+  locked_at            DateTime?            @db.Timestamptz(6)
+  last_login_at        DateTime?            @db.Timestamptz(6)
+  created_by           String               @db.VarChar(100)
+  created_at           DateTime             @default(now()) @db.Timestamptz(6)
+  updated_by           String?              @db.VarChar(100)
+  updated_at           DateTime?            @db.Timestamptz(6)
+  deleted_by           String?              @db.VarChar(100)
+  deleted_at           DateTime?            @db.Timestamptz(6)
+  is_deleted           Boolean              @default(false)
+  is_active            Boolean              @default(true)
+  user_group_members   user_group_members[]
+
+  @@index([employee_no], map: "ix_users_employee_no")
+  @@schema("usrmgnt")
+}
