@@ -7,6 +7,9 @@ export const PASSWORD_RULES: Array<{ key: string; label: string; test: (pwd: str
   { key: 'symbol', label: 'Mengandung simbol (mis. @ # $ !)', test: (p) => /[^A-Za-z0-9]/.test(p) },
 ];
 
+/** Huruf pertama kecil tanpa mengubah "(A-Z)" di dalam label */
+export const lowerFirst = (s: string) => s.charAt(0).toLowerCase() + s.slice(1);
+
 /** Kembalikan daftar pesan pelanggaran; kosong berarti valid */
 export function validatePassword(newPassword: string, oldPassword?: string): string[] {
   const errors = PASSWORD_RULES.filter((r) => !r.test(newPassword)).map((r) => r.label);

@@ -11,7 +11,7 @@ import { TextField } from '@/components/ui/TextField';
 import { authKeys, useSessionActions } from '@/hooks/useAuth';
 import { usePostLoginRedirect } from '@/hooks/usePostLoginRedirect';
 import { AuthLayout } from '@/layouts/AuthLayout';
-import { PASSWORD_RULES, validatePassword } from '@/lib/password';
+import { PASSWORD_RULES, lowerFirst, validatePassword } from '@/lib/password';
 import { useSession } from '@/stores/session';
 import { toast } from '@/stores/toast';
 
@@ -42,7 +42,7 @@ export default function ChangePasswordPage() {
     if (!values.old_password) er.old_password = 'Password lama wajib diisi';
     const policy = validatePassword(values.new_password, values.old_password);
     if (!values.new_password) er.new_password = 'Password baru wajib diisi';
-    else if (policy.length) er.new_password = `Password belum memenuhi kebijakan: ${policy[0].toLowerCase()}`;
+    else if (policy.length) er.new_password = `Password belum memenuhi kebijakan: ${lowerFirst(policy[0])}`;
     if (!values.confirm_password) er.confirm_password = 'Konfirmasi password wajib diisi';
     else if (values.confirm_password !== values.new_password) er.confirm_password = 'Konfirmasi password tidak sama';
     setErrors(er);

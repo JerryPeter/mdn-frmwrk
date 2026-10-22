@@ -28,3 +28,16 @@ const ICONS: Record<string, LucideIcon> = {
 export function resolveIcon(name?: string | null, fallback: LucideIcon = Circle): LucideIcon {
   return (name && ICONS[name]) || fallback;
 }
+
+/** Pilihan ikon untuk form (kolom `icon` di applications/menus) */
+export const ICON_OPTIONS: Array<{ value: string; label: string }> = [
+  { value: 'shield', label: 'Perisai (shield)' },
+  { value: 'receipt', label: 'Struk (receipt)' },
+  { value: 'box', label: 'Kotak (box)' },
+  { value: 'database', label: 'Database' },
+  { value: 'key', label: 'Kunci (key)' },
+  { value: 'edit', label: 'Pensil (edit)' },
+  { value: 'bar-chart', label: 'Grafik (bar-chart)' },
+  { value: 'file', label: 'Dokumen (file)' },
+  { value: 'grid', label: 'Grid' },
+];

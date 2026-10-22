@@ -11,7 +11,7 @@ const STYLES: Record<ToastVariant, { box: string; Icon: typeof Info }> = {
 export function Toaster() {
   const { toasts, dismiss } = useToastStore();
   return (
-    <div className="pointer-events-none fixed right-4 top-4 z-50 flex w-80 flex-col gap-2" aria-live="polite">
+    <div className="pointer-events-none fixed bottom-4 right-4 z-50 flex w-80 flex-col gap-2" aria-live="polite">
       {toasts.map((t) => {
         const { box, Icon } = STYLES[t.variant];
         return (

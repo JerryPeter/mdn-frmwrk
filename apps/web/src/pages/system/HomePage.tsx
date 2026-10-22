@@ -30,9 +30,9 @@ export default function HomePage() {
   return (
     <div className="mx-auto max-w-5xl">
       <div className="rounded-2xl bg-gradient-to-r from-brand-700 to-brand-900 p-6 text-white sm:p-8">
-        <p className="text-sm text-brand-200">{greeting()},</p>
+        <p className="text-sm text-[#bcd2ff]">{greeting()},</p>
         <h1 className="mt-1 text-2xl font-semibold">{user?.full_name}</h1>
-        <div className="mt-4 inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-sm ring-1 ring-white/20">
+        <div className="mt-4 inline-flex items-center gap-2 rounded-full bg-[rgb(255_255_255/0.1)] px-3 py-1 text-sm ring-1 ring-[rgb(255_255_255/0.2)]">
           <Building2 className="h-4 w-4" />
           {ctx?.company_name ?? ctx?.company_code} · {ctx?.app_name ?? ctx?.app_code}
         </div>

@@ -2,7 +2,7 @@ import axios, { type AxiosRequestConfig, type InternalAxiosRequestConfig } from 
 import { env } from '@/config/env';
 import { mockAdapter } from '@/mocks/adapter';
 import { useSession } from '@/stores/session';
-import type { ApiFailure, ApiSuccess } from '@/types/api';
+import type { ApiFailure, ApiMeta, ApiSuccess } from '@/types/api';
 import type { SelectContextResponse, TokenResponse } from '@/types/auth';
 import { toApiError } from './errors';
 
@@ -65,6 +65,15 @@ type RetriableConfig = InternalAxiosRequestConfig & { _retry?: boolean };
 http.interceptors.response.use(
   (res) => res,
   async (error) => {
+    // Request berformat blob (download Excel): body error JSON ikut berbentuk Blob
+    const blob = error.response?.data;
+    if (blob instanceof Blob && blob.type.includes('json')) {
+      try {
+        error.response.data = JSON.parse(await blob.text());
+      } catch {
+        /* biarkan apa adanya */
+      }
+    }
     const config = error.config as RetriableConfig | undefined;
     const code = (error.response?.data as ApiFailure | undefined)?.error?.code;
     const session = useSession.getState();
@@ -94,4 +103,25 @@ http.interceptors.response.use(
 export async function request<T>(config: AxiosRequestConfig): Promise<T> {
   const res = await http.request<ApiSuccess<T>>(config);
   return res.data.data;
+}
+
+/** Unduh file (mis. Excel) lalu simpan lewat browser; nama file dari Content-Disposition */
+export async function downloadFile(config: AxiosRequestConfig, fallbackName: string): Promise<void> {
+  const res = await http.request<Blob>({ ...config, responseType: 'blob' });
+  const disposition = String(res.headers['content-disposition'] ?? '');
+  const filename = /filename="?([^";]+)"?/.exec(disposition)?.[1] ?? fallbackName;
+  const url = URL.createObjectURL(res.data);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+/** Untuk endpoint list berpaginasi: kembalikan `data` + `meta` */
+export async function requestPage<T>(config: AxiosRequestConfig): Promise<{ data: T[]; meta: ApiMeta }> {
+  const res = await http.request<ApiSuccess<T[]>>(config);
+  return { data: res.data.data, meta: res.data.meta ?? { page: 1, page_size: res.data.data.length, total: res.data.data.length } };
 }

@@ -20,7 +20,7 @@ interface FieldErrors {
   password?: string;
 }
 
-/** Akun uji dari PRD §12 (hanya ditampilkan saat mode mock) */
+/** Akun uji dari PRD §12 (hanya ditampilkan saat mode mock atau dev) */
 const TEST_ACCOUNTS = [
   { username: 'superadmin', note: 'USRMGNT penuh (MDN, DEMO1)' },
   { username: 'auditor', note: 'USRMGNT read-only' },
@@ -122,12 +122,13 @@ export default function LoginPage() {
         </p>
       </div>
 
-      {env.useMock && (
+      {(env.useMock || import.meta.env.DEV) && (
         <div className="mt-6 rounded-2xl border border-dashed border-amber-300 bg-amber-50/60 p-4">
           <div className="mb-3 flex items-center justify-between">
             <p className="text-xs font-semibold uppercase tracking-wide text-amber-800">
-              Mode mock · password: Modena@2026
+              {env.useMock ? 'Mode mock' : 'Akun uji (dev)'} · password: Modena@2026
             </p>
+            {env.useMock && (
             <button
               type="button"
               onClick={() => {
@@ -138,6 +139,7 @@ export default function LoginPage() {
             >
               <RotateCcw className="h-3 w-3" /> Reset data
             </button>
+            )}
           </div>
           <div className="grid grid-cols-2 gap-1.5">
             {TEST_ACCOUNTS.map((a) => (

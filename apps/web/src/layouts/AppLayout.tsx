@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link, Outlet } from 'react-router-dom';
 import { ArrowLeftRight, Building2, Menu, X } from 'lucide-react';
 import clsx from 'clsx';
+import { ThemeToggle } from '@/components/ui/ThemeToggle';
 import { resolveIcon } from '@/lib/icons';
 import { useSession } from '@/stores/session';
 import { Sidebar } from './Sidebar';
@@ -35,7 +36,7 @@ export function AppLayout() {
       {/* Sidebar tablet/mobile (drawer) */}
       <div className={clsx('fixed inset-0 z-40 lg:hidden', !drawerOpen && 'pointer-events-none')}>
         <div
-          className={clsx('absolute inset-0 bg-slate-900/40 transition-opacity', drawerOpen ? 'opacity-100' : 'opacity-0')}
+          className={clsx('absolute inset-0 bg-black/40 transition-opacity', drawerOpen ? 'opacity-100' : 'opacity-0')}
           onClick={() => setDrawerOpen(false)}
         />
         <aside
@@ -76,6 +77,7 @@ export function AppLayout() {
           </div>
 
           <div className="ml-auto flex items-center gap-2">
+            <ThemeToggle />
             <Link
               to="/select-context"
               className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-1.5 text-sm text-slate-600 hover:bg-slate-50"
