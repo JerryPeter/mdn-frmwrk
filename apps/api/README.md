@@ -40,7 +40,7 @@ dibangun ulang dari DDL + seed setiap kali test dijalankan. Database dev `modena
 | Method | Path | Permission |
 |---|---|---|
 | GET | `/health` | – |
-| POST | `/auth/login` · `/auth/refresh` · `/auth/logout` | – (refresh via cookie `refresh_token`) |
+| POST | `/auth/login` · `/auth/refresh` · `/auth/logout` | – (refresh via cookie `refresh_token`; login dibatasi `LOGIN_RATE_LIMIT` per `LOGIN_RATE_WINDOW` per IP → 429) |
 | GET | `/auth/me` · POST `/auth/change-password` | token valid (boleh saat wajib ganti password) |
 | GET | `/auth/contexts` · POST `/auth/context` | token valid |
 | GET | `/auth/menus` · `/auth/permissions` | token valid + konteks |

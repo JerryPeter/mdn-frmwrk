@@ -20,6 +20,8 @@ import { usersRouter } from './modules/users/users.routes.js';
 export function createApp() {
   const app = express();
   app.disable('x-powered-by');
+  // IP asli klien di belakang reverse proxy (dipakai rate limit)
+  app.set('trust proxy', env.TRUST_PROXY);
   app.use(helmet());
   app.use(cors({ origin: env.CORS_ORIGIN.split(',').map((o) => o.trim()), credentials: true }));
   app.use(express.json({ limit: '1mb' }));

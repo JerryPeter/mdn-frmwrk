@@ -5,8 +5,8 @@
 | Acuan | `docs/PRD_user_management_v2.md` (as-built, acuan utama sesi berikutnya), `docs/PRD_user_management.md` v1.0 (riwayat), `database/01_user_management.sql` v0.5.0 |
 | Repository | https://github.com/JerryPeter/mdn-frmwrk (branch `main`) |
 | Database dev | PostgreSQL 18.3 lokal, database `modena`, schema `usrmgnt` (DDL + seed sudah dijalankan) |
-| Posisi terakhir | 16 Oktober 2026 |
-| Tahap berjalan | Tahap 2 s.d. 8 selesai (seluruh fitur fungsional Fase 1). Berikutnya: Tahap 9 (hardening) dan sisa Tahap 1 |
+| Posisi terakhir | 22 Oktober 2026 |
+| Tahap berjalan | Tahap 2 s.d. 8 selesai; Tahap 9 berjalan (H9.1, H9.2 selesai). Berikutnya: H9.3 logging, H9.5 uji kinerja, FE-4.15, SET-1.2 |
 
 **Status yang dipakai**
 
@@ -35,7 +35,7 @@ Urutan tahap mengikuti PRD §14.
 | 6 | Menus + action per menu | ✅ Selesai | AC-08 lulus (sudah, backend + browser) |
 | 7 | Users (CRUD, reset/lock/unlock, export/import) | ✅ Selesai | AC-15, AC-16 lulus (sudah, backend + browser) |
 | 8 | User Groups, Group Members, Group Permissions (matriks) | ✅ Selesai | AC-09, AC-10, AC-13, AC-14 lulus (sudah, backend; alur UI diuji di browser) |
-| 9 | Hardening: rate limit, logging, test integrasi menyeluruh | ⬜ Belum | Seluruh AC lulus |
+| 9 | Hardening: rate limit, logging, test integrasi menyeluruh | 🔶 Sebagian | Seluruh AC lulus (sudah); sisa: logging terstruktur, uji kinerja |
 
 > **Catatan urutan:** Tahap 4 dikerjakan lebih dulu daripada Tahap 1–3 dengan mock API di `apps/web/src/mocks/`. Sejak 16-10-2026 frontend memakai backend asli (FE-4.14). Mock masih tersedia lewat `VITE_USE_MOCK=true`, tetapi hanya mencakup endpoint `/auth/*`.
 
@@ -59,7 +59,7 @@ Urutan tahap mengikuti PRD §14.
 | ID | Item | Ref PRD | Status | Catatan |
 |---|---|---|---|---|
 | SET-1.1 | Inisialisasi git repository + push ke GitHub | – | ✅ Selesai | 16-10-2026. Commit awal `c54c336` di `main`; `.gitignore` root mengecualikan `.env`, `node_modules`, `dist`, `.claude/settings.local.json` (sudah dicek: `.env` tidak ikut ter-upload) |
-| SET-1.1b | Tambah `.gitattributes` untuk konsistensi akhir baris (LF/CRLF) | – | ⬜ Belum | Muncul peringatan CRLF saat commit di Windows |
+| SET-1.1b | Tambah `.gitattributes` untuk konsistensi akhir baris (LF/CRLF) | – | ✅ Selesai | 22-10-2026: `* text=auto eol=lf`, skrip Windows CRLF, file biner ditandai |
 | SET-1.2 | Struktur monorepo (`apps/api`, `apps/web`, workspace root) | §5.2 | 🔶 Sebagian | `apps/web` dan `apps/api` sudah ada; konfigurasi workspace root (npm workspaces) belum |
 | SET-1.3 | `.env.example` (DATABASE_URL, REDIS_URL, JWT_*, CORS_ORIGIN) | §11 | ✅ Selesai | `apps/api/.env.example` berisi DATABASE_URL, REDIS_URL, JWT_*, CORS_ORIGIN, TEST_DB_NAME. Nilai DB lama di `apps/web/.env` tidak dipakai lagi oleh siapa pun dan boleh dihapus |
 | SET-1.4 | Setup Express 4 + TypeScript | §5.1 | ✅ Selesai | Express 4 + TypeScript (ESM), `helmet`, CORS dari `CORS_ORIGIN` |
@@ -170,7 +170,7 @@ Urutan tahap mengikuti PRD §14.
 | ID | Item | Ref PRD | Status | Catatan |
 |---|---|---|---|---|
 | H9.1 | `helmet`, CORS origin terdaftar | §11 | ✅ Selesai | Terpasang sejak fondasi backend (`app.ts`): `helmet()`, CORS hanya `CORS_ORIGIN`, `credentials: true` |
-| H9.2 | Rate limit login 10 request/menit per IP | §11 | ⬜ Belum | Pesan `TOO_MANY_REQUESTS` sudah ditangani di halaman login |
+| H9.2 | Rate limit login 10 request/menit per IP | §11 | ✅ Selesai | `middlewares/rate-limit.ts`: fixed window Redis per IP (`ratelimit:login:{ip}`), 429 `TOO_MANY_REQUESTS` + `Retry-After` + header `RateLimit-*`; diatur lewat `LOGIN_RATE_LIMIT`, `LOGIN_RATE_WINDOW`; `TRUST_PROXY` untuk IP asli di belakang reverse proxy; fail-open bila Redis mati (lockout per akun tetap berlaku). Test di `auth.test.ts` |
 | H9.3 | Logging terstruktur JSON (request id, user, durasi) | §11 | ⬜ Belum | |
 | H9.4 | Unit test service + integration test seluruh AC | §11 | ⬜ Belum | |
 | H9.5 | Uji kinerja list < 500 ms untuk 10.000 baris | §11 | ⬜ Belum | |
@@ -442,3 +442,4 @@ Skenario frontend tambahan yang sudah lulus: auditor hanya melihat tombol Export
 | 16-10-2026 | Ditambah FE-4.16: dark mode (Terang / Gelap / Ikuti sistem) berbasis CSS variable untuk palet slate, white, brand, red, amber, emerald, sky; overlay modal memakai hitam agar tidak ikut terbalik. Diuji di browser (11 skenario + pemeriksaan visual halaman login, Users, drawer, dialog, matriks permission) |
 | 16-10-2026 | Halaman Group Permissions (M8.5) diganti dari matriks kolom-per-action menjadi tabel bertingkat Aplikasi → Group → Menu → Action (backend tidak berubah). 25 skenario browser lulus, termasuk mode gelap |
 | 16-10-2026 | Dibuat `docs/PRD_user_management_v2.md` (as-built) sebagai acuan pengembangan sesi baru; status H9.1 diselaraskan (helmet + CORS sudah terpasang) |
+| 22-10-2026 | Seluruh pekerjaan Tahap 1–8 di-commit (4 commit) dan di-push ke GitHub; SET-1.1b `.gitattributes` selesai. H9.2 rate limit login selesai (1 test baru). Total test backend 144 |

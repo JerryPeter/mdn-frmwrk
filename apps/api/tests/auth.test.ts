@@ -2,6 +2,7 @@ import request from 'supertest';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { createApp } from '../src/app.js';
 import { prisma } from '../src/config/db.js';
+import { env } from '../src/config/env.js';
 import { connectRedis, redis } from '../src/config/redis.js';
 import { invalidatePermissions } from '../src/lib/permissions.js';
 import { bearer } from './helpers.js';
@@ -196,5 +197,48 @@ describe('konteks, menu, permission', () => {
 
     // Login dengan password baru berhasil
     expect((await login('bc.staff', 'Baru#2026x')).status).toBe(200);
+  });
+});
+
+describe('rate limit login (H9.2)', () => {
+  /** Hapus penghitung rate limit login (SCAN tidak menambahkan keyPrefix otomatis) */
+  async function resetLoginLimit() {
+    const keys = await redis.keys(`${env.REDIS_KEY_PREFIX}ratelimit:login:*`);
+    if (keys.length) await redis.del(...keys.map((k) => k.slice(env.REDIS_KEY_PREFIX.length)));
+  }
+
+  it('melebihi batas per IP → 429 TOO_MANY_REQUESTS dengan Retry-After; login lain tidak terpengaruh setelah jendela berakhir', async () => {
+    const original = env.LOGIN_RATE_LIMIT;
+    env.LOGIN_RATE_LIMIT = 3;
+    try {
+      await resetLoginLimit();
+      const first = await login('auditor');
+      expect(first.status).toBe(200);
+      expect(first.headers['ratelimit-limit']).toBe('3');
+      expect(first.headers['ratelimit-remaining']).toBe('2');
+      await login('auditor', 'salah-password'); // gagal login tetap dihitung
+      await login('auditor');
+
+      const blocked = await login('auditor');
+      expect(blocked.status).toBe(429);
+      expect(blocked.body.error.code).toBe('TOO_MANY_REQUESTS');
+      expect(blocked.body.error.message).toMatch(/Coba lagi dalam \d+ detik/);
+      expect(Number(blocked.headers['retry-after'])).toBeGreaterThan(0);
+      expect(Number(blocked.headers['retry-after'])).toBeLessThanOrEqual(env.LOGIN_RATE_WINDOW_SECONDS);
+
+      // Percobaan yang diblokir tidak menyentuh akun (tidak menambah failed_login_count)
+      const auditor = await prisma.users.findFirstOrThrow({ where: { username: 'auditor' } });
+      expect(auditor.failed_login_count).toBe(0);
+
+      // Endpoint auth lain tidak ikut dibatasi
+      expect((await request(app).post('/api/v1/auth/refresh')).status).toBe(401);
+
+      // Setelah jendela berakhir (disimulasikan dengan menghapus penghitung) login kembali bisa
+      await resetLoginLimit();
+      expect((await login('auditor')).status).toBe(200);
+    } finally {
+      env.LOGIN_RATE_LIMIT = original;
+      await resetLoginLimit();
+    }
   });
 });

@@ -10,7 +10,8 @@ const testUrl = `postgresql://${DB_USER}:${encodeURIComponent(DB_PASSWORD ?? '')
 export default defineConfig({
   test: {
     globalSetup: ['tests/global-setup.ts'],
-    env: { NODE_ENV: 'test', DATABASE_URL: testUrl, REDIS_KEY_PREFIX: 'test:' },
+    // Batas login dinaikkan agar test lain yang sering login tidak terkena rate limit
+    env: { NODE_ENV: 'test', DATABASE_URL: testUrl, REDIS_KEY_PREFIX: 'test:', LOGIN_RATE_LIMIT: '100000' },
     fileParallelism: false,
     testTimeout: 20_000,
     hookTimeout: 120_000,

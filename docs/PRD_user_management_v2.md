@@ -4,7 +4,7 @@
 |---|---|
 | Dokumen | Product Requirements Document – Modul User Management, **versi as-built** |
 | Versi | 2.0 |
-| Tanggal | 16 Oktober 2026 |
+| Tanggal | 22 Oktober 2026 (dibuat 16 Oktober 2026) |
 | Pemilik | Divisi IT MODENA Indonesia |
 | Menggantikan | `docs/PRD_user_management.md` v1.0 (tetap disimpan sebagai riwayat) |
 | Acuan database | `database/01_user_management.sql` (v0.5.0), `database/02_seed_sample_data.sql` |
@@ -57,7 +57,7 @@ MODENA membangun framework pengembangan aplikasi internal. Modul pertama dan fon
 | 7 | Soft delete, restore, aktif/nonaktif, lock/unlock user, reset password | ✅ |
 | 8 | Export Excel daftar user; Import Excel user **[U]** | ✅ |
 | 9 | Tema tampilan Terang / Gelap / Ikuti sistem **[I]** (permintaan tambahan pemilik produk) | ✅ |
-| 10 | Hardening: rate limit login, logging terstruktur, uji kinerja | ⬜ (§16) |
+| 10 | Hardening: rate limit login ✅; logging terstruktur dan uji kinerja ⬜ | 🔶 (§16) |
 
 ### 2.2 Di luar lingkup Fase 1
 
@@ -67,12 +67,12 @@ MODENA membangun framework pengembangan aplikasi internal. Modul pertama dan fon
 - Pembatasan admin per company → OI-01
 - Fitur bisnis aplikasi lain (BILLCOST, INVDEMO hanya data contoh; halamannya masih placeholder)
 
-## 3. Ringkasan Status (per 16-10-2026)
+## 3. Ringkasan Status (per 22-10-2026)
 
 | Tahap | Lingkup | Status | Bukti |
 |---|---|---|---|
 | 0 | DDL + seed di database dev `modena` | ✅ | 10 tabel, 1 view, 5 function, 14 trigger |
-| 1 | Setup monorepo, DB/Redis, Prisma, format response, health check | 🔶 | Selesai kecuali npm workspaces di root dan `.gitattributes` |
+| 1 | Setup monorepo, DB/Redis, Prisma, format response, health check | 🔶 | Selesai kecuali npm workspaces di root |
 | 2 | Auth backend | ✅ | AC-01 s.d. AC-04 lulus |
 | 3 | Konteks, menu, permission, `authorize`, cache Redis | ✅ | AC-05 s.d. AC-07 lulus |
 | 4 | Frontend dasar (login, konteks, ganti password, layout, guard) | ✅ | Diuji di browser terhadap backend asli |
@@ -80,11 +80,11 @@ MODENA membangun framework pengembangan aplikasi internal. Modul pertama dan fon
 | 6 | Menus + action per menu | ✅ | AC-08 lulus |
 | 7 | Users (CRUD, reset/lock/unlock, export/import) | ✅ | AC-15, AC-16 lulus |
 | 8 | User Groups, Group Members, Group Permissions | ✅ | AC-09, AC-10, AC-13, AC-14 lulus |
-| 9 | Hardening | ⬜ | Lihat §16 |
+| 9 | Hardening | 🔶 | helmet + CORS dan rate limit login selesai; sisa di §16 |
 
-**Angka uji terakhir**: 143 test integrasi backend lulus (8 file). Uji browser (Playwright, skrip di luar repo) per halaman: Companies 34, Applications 26, Actions 26, Menus 35, Company Applications 15, Users 41, User Groups + Group Members 50, Group Permissions 25, Tema 11 skenario, semuanya lulus terhadap database `modena_test`.
+**Angka uji terakhir**: 144 test integrasi backend lulus (8 file). Uji browser (Playwright, skrip di luar repo) per halaman: Companies 34, Applications 26, Actions 26, Menus 35, Company Applications 15, Users 41, User Groups + Group Members 50, Group Permissions 25, Tema 11 skenario, semuanya lulus terhadap database `modena_test`.
 
-**Repository**: https://github.com/JerryPeter/mdn-frmwrk (branch `main`). Hanya commit awal yang sudah di-push; seluruh pekerjaan Tahap 1–8 masih berupa perubahan lokal yang **belum di-commit**.
+**Repository**: https://github.com/JerryPeter/mdn-frmwrk (branch `main`). Seluruh pekerjaan sudah di-commit dan di-push per 22-10-2026.
 
 ## 4. Glosarium
 
@@ -361,7 +361,7 @@ Field: `application_id` (tidak dapat diubah), `group_code` (maks 50, `^[A-Z0-9_]
 | 404 | `NOT_FOUND` |
 | 409 | `DUPLICATE` |
 | 422 | `BUSINESS_RULE`, `REFERENCE_NOT_FOUND`, `IN_USE` |
-| 429 | `TOO_MANY_REQUESTS` (belum ada rate limit, §16) |
+| 429 | `TOO_MANY_REQUESTS` (rate limit login; disertai header `Retry-After`) |
 | 500 | `INTERNAL_ERROR` |
 
 ### 10.2 Daftar endpoint
@@ -369,7 +369,7 @@ Field: `application_id` (tidak dapat diubah), `group_code` (maks 50, `^[A-Z0-9_]
 | Method | Path | Permission |
 |---|---|---|
 | GET | `/health` | – (status database & redis) |
-| POST | `/auth/login` · `/auth/refresh` · `/auth/logout` | – (refresh via cookie) |
+| POST | `/auth/login` · `/auth/refresh` · `/auth/logout` | – (refresh via cookie; login dibatasi per IP, §12) |
 | GET · POST | `/auth/me` · `/auth/change-password` | token (boleh saat wajib ganti password) |
 | GET · POST | `/auth/contexts` · `/auth/context` | token |
 | GET | `/auth/menus` · `/auth/permissions` | token + konteks |
@@ -434,7 +434,7 @@ Pilihan Terang / Gelap / Ikuti sistem lewat `ThemeToggle` di header aplikasi dan
 | Aspek | Kebutuhan | Status |
 |---|---|---|
 | Keamanan | `helmet`; CORS hanya `CORS_ORIGIN`; Zod di semua endpoint; query lewat Prisma/parameterized; tanpa `password_hash` di response | ✅ |
-| Keamanan | Rate limit login 10 request/menit per IP | ⬜ |
+| Keamanan | Rate limit login 10 request/menit per IP (`LOGIN_RATE_LIMIT`, `LOGIN_RATE_WINDOW`); Redis fixed window, header `RateLimit-*` + `Retry-After`; fail-open bila Redis mati; `TRUST_PROXY` untuk IP asli di belakang reverse proxy | ✅ |
 | Kinerja | List < 500 ms untuk 10.000 baris; cek permission dari cache < 10 ms | ⬜ belum diukur |
 | Konsistensi | Operasi set (permission, action per menu, import, cascade delete/restore) dalam satu transaksi | ✅ |
 | Logging | Log request terstruktur JSON (request id, user_id, method, path, status, durasi) | ⬜ (saat ini hanya `console.error` untuk error 500) |
@@ -445,7 +445,7 @@ Pilihan Terang / Gelap / Ikuti sistem lewat `ThemeToggle` di header aplikasi dan
 
 ## 13. Lingkungan, Konfigurasi, dan Menjalankan
 
-**`apps/api/.env`** (salin dari `.env.example`; jangan di-commit): `NODE_ENV`, `PORT` (3000), `CORS_ORIGIN` (`http://localhost:5173`), `DB_HOST/PORT/NAME/USER/PASSWORD`, `DATABASE_URL` (`postgresql://…/modena?schema=usrmgnt`), `TEST_DB_NAME` (`modena_test`), `REDIS_URL`, `REDIS_KEY_PREFIX` (opsional), `PERMISSION_CACHE_TTL` (600), `JWT_SECRET` (min. 32 karakter), `JWT_EXPIRES_IN` (15m), `REFRESH_EXPIRES_IN` (7d).
+**`apps/api/.env`** (salin dari `.env.example`; jangan di-commit): `NODE_ENV`, `PORT` (3000), `CORS_ORIGIN` (`http://localhost:5173`), `DB_HOST/PORT/NAME/USER/PASSWORD`, `DATABASE_URL` (`postgresql://…/modena?schema=usrmgnt`), `TEST_DB_NAME` (`modena_test`), `REDIS_URL`, `REDIS_KEY_PREFIX` (opsional), `PERMISSION_CACHE_TTL` (600), `JWT_SECRET` (min. 32 karakter), `JWT_EXPIRES_IN` (15m), `REFRESH_EXPIRES_IN` (7d), `LOGIN_RATE_LIMIT` (10), `LOGIN_RATE_WINDOW` (1m), `TRUST_PROXY` (`false`; isi jumlah hop, mis. `1`, bila di belakang nginx).
 
 **`apps/web/.env`**: `VITE_API_BASE_URL=/api/v1`, `VITE_API_PROXY_TARGET=http://localhost:3000`, `VITE_USE_MOCK=false` (mock hanya mencakup `/auth/*`).
 
@@ -503,22 +503,19 @@ Company: MDN, DEMO1, DEMO2. Aplikasi: USRMGNT, BILLCOST, INVDEMO. Kode menu USRM
 
 **Strategi uji**
 
-- Test integrasi backend di `apps/api/tests/*.test.ts` (satu file per modul), `fileParallelism: false`, prefix Redis `test:`, database `modena_test` dibangun ulang tiap run. Setiap file yang mengubah data seed wajib mengembalikannya di `afterAll` (contoh: `users.test.ts`, `user-groups.test.ts`).
+- Test integrasi backend di `apps/api/tests/*.test.ts` (satu file per modul), `fileParallelism: false`, prefix Redis `test:`, database `modena_test` dibangun ulang tiap run. `vitest.config.ts` menaikkan `LOGIN_RATE_LIMIT` agar test yang sering login tidak terkena rate limit; test rate limit menurunkannya sementara. Setiap file yang mengubah data seed wajib mengembalikannya di `afterAll` (contoh: `users.test.ts`, `user-groups.test.ts`).
 - Uji browser dijalankan terhadap server terpisah: API `PORT=3001` dengan `DATABASE_URL` ke `modena_test` dan `REDIS_KEY_PREFIX=e2e:`, Vite `--port 5174` dengan `VITE_API_PROXY_TARGET=http://localhost:3001`. Reset `modena_test` dengan `db:reset` **setelah menghentikan** server 3001.
 
 ## 16. Sisa Pekerjaan (urutan usulan)
 
 | ID | Pekerjaan | Ref |
 |---|---|---|
-| H9.2 | Rate limit `POST /auth/login` 10 request/menit per IP → 429 `TOO_MANY_REQUESTS` (halaman login sudah menangani pesannya) | §12 |
 | H9.3 | Logging terstruktur JSON per request (request id, user_id, method, path, status, durasi), tanpa data sensitif | §12 |
 | H9.4 | Unit test service + perluasan test integrasi | §12 |
 | H9.5 | Uji kinerja list 10.000 baris dan cek permission dari cache | §12 |
 | FE-4.15 | Pindahkan skrip uji browser ke repo (`apps/web/e2e`, Playwright) | §15 |
 | SET-1.2 | npm workspaces di root monorepo | §6.2 |
-| SET-1.1b | `.gitattributes` untuk konsistensi LF/CRLF | – |
 | API-00.8 | Dokumentasi OpenAPI/Swagger (opsional) | – |
-| GIT | Commit + push seluruh pekerjaan Tahap 1–8 (belum dilakukan) | §3 |
 
 ## 17. Keputusan yang Masih Menunggu
 
@@ -558,3 +555,4 @@ Company: MDN, DEMO1, DEMO2. Aplikasi: USRMGNT, BILLCOST, INVDEMO. Kode menu USRM
 |---|---|---|
 | 1.0 | 13-10-2026 | Draft awal berdasarkan desain database v0.5.0 dan data seed |
 | 2.0 | 16-10-2026 | Versi as-built: status Tahap 0–9, stack terpasang, pola modul, keputusan AD-01 s.d. AD-06, aturan implementasi IR-01 s.d. IR-14, kontrak API lengkap termasuk lookup & duplikat group, UI as-built (termasuk tabel bertingkat Group Permissions dan tema gelap), lingkungan & uji, sisa pekerjaan, keputusan tertunda, jebakan teknis |
+| 2.1 | 22-10-2026 | Status Git (sudah di-push), `.gitattributes`, H9.2 rate limit login selesai; env baru `LOGIN_RATE_LIMIT`, `LOGIN_RATE_WINDOW`, `TRUST_PROXY` |

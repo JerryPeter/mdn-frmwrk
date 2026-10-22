@@ -2,6 +2,7 @@ import { Router, type Request, type Response } from 'express';
 import { env } from '../../config/env.js';
 import { refreshTokens } from '../../lib/refresh-tokens.js';
 import { authenticate } from '../../middlewares/auth.js';
+import { loginRateLimit } from '../../middlewares/rate-limit.js';
 import { asyncHandler } from '../../utils/async-handler.js';
 import { AppError } from '../../utils/errors.js';
 import { ok } from '../../utils/response.js';
@@ -36,6 +37,7 @@ export const authRouter = Router();
 
 authRouter.post(
   '/login',
+  loginRateLimit,
   asyncHandler(async (req, res) => {
     const { username, password } = parse(loginSchema, req.body);
     const { refreshToken, body } = await authService.login(username, password);
